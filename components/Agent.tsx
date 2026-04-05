@@ -114,32 +114,34 @@ const Agent = ({
     }
   }, [messages, callStatus, feedbackId, interviewId, router, type, userId]);
 
-  const handleCall = async () => {
-    setCallStatus(CallStatus.CONNECTING);
+    const handleCall = async () => {
+        try {
+            setCallStatus(CallStatus.CONNECTING);
 
-    if (type === "generate") {
-      await vapi.start(process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID!, {
-        variableValues: {
-          username: userName,
-          userid: userId,
-        },
-      });
-    } else {
-      let formattedQuestions = "";
-      if (questions) {
-        formattedQuestions = questions
-          .map((question) => `- ${question}`)
-          .join("\n");
-      }
+            if (type === "generate") {
+                const workflowId = process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID;
 
-      await vapi.start(interviewer, {
-        variableValues: {
-          questions: formattedQuestions,
-        },
-      });
-    }
-  };
+                if (!workflowId) {
+                    throw new Error("Workflow ID is missing in .env");
+                }
 
+                await vapi.start({
+                    workflowId: workflowId,
+                    variableValues: {
+                        username: userName,
+                        userid: userId,
+                    },
+                });
+            } else {
+                // الـ Assistant العادي اللي شغال معاكي دلوقتي
+                await vapi.start(interviewer);
+            }
+        } catch (err) {
+            console.error("Vapi Start Error:", err);
+            setCallStatus(CallStatus.INACTIVE);
+            alert("تأكدي أن الـ Workflow ID صحيح في ملف الـ .env");
+        }
+    };
   const handleDisconnect = () => {
     setCallStatus(CallStatus.FINISHED);
     vapi.stop();

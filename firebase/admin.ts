@@ -58,4 +58,4 @@ if (!apps.length) {
 const auth = getAuth();
 const db = getFirestore();
 
-export { auth, db }; // هنا بنصدر auth و db
+export { auth, db }; // هنا بنصدر auth و dbcd
