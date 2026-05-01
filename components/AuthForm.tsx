@@ -92,7 +92,7 @@ const AuthForm = ({ type }: { type: FormType }) => {
                     toast.success("Signed in successfully.");
 
                     // تحديث الصفحة عشان الـ Middleware يحس بالـ Cookie الجديدة
-                    router.refresh();
+                    // router.refresh();
 
                     // التوجيه للصفحة الرئيسية (أو الـ Dashboard)
                     router.push("/");
