@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  transpilePackages: ['@ai-sdk/groq'], // ضيفي السطر ده هنا
   /* config options here */
   // images: {
   //   remotePatterns: [

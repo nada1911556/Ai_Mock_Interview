@@ -1,31 +1,27 @@
+import { groq } from './../../../../node_modules/@ai-sdk/groq/src/groq-provider';
 import { generateText } from "ai";
-import { google } from "@ai-sdk/google";
 
 import { db } from "@/firebase/admin";
 import { getRandomInterviewCover } from "@/lib/utils";
 
-// ✅ CORS headers
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
 
-// ✅ OPTIONS handler (مهم لـ Vapi)
-export async function OPTIONS() {
-  return new Response(null, {
-    status: 204,
-    headers: corsHeaders,
-  });
+export async function GET() {
+  return Response.json(
+    { success: true, data: "Thank you!" },
+    {
+      status: 200,
+    }
+  );
 }
 
 export async function POST(request: Request) {
+  console.log("API KEY LENGTH:", process.env.GROQ_API_KEY?.length);
   const { type, role, level, techstack, amount, userid } =
     await request.json();
 
   try {
     const { text: questions } = await generateText({
-      model: google("gemini-2.0-flash-001"),
+      model: groq("llama-3.3-70b-versatile"),
       prompt: `Prepare questions for a job interview.
         The job role is ${role}.
         The job experience level is ${level}.
@@ -59,28 +55,27 @@ export async function POST(request: Request) {
       { success: true },
       {
         status: 200,
-        headers: corsHeaders,
       }
     );
-  } catch (error) {
-    console.error("Error:", error);
+  } 
+  catch (error: any) {
+    // اطبعي الخطأ في الـ Terminal بتاع الـ VS Code عشان نشوفه
+    console.error("FULL ERROR:", error); 
 
-    return Response.json(
-      { success: false, error: error },
-      {
-        status: 500,
-        headers: corsHeaders,
-      }
-    );
-  }
+    return Response.json({ 
+        success: false, 
+        error: error.message || error, // لو مفيش message يبعت الـ error نفسه
+        raw: JSON.stringify(error) // حولي الخطأ لنص عشان نشوفه لو فاضي
+    }, { status: 500 });
 }
-
-export async function GET() {
-  return Response.json(
-    { success: true, data: "Thank you!" },
-    {
-      status: 200,
-      headers: corsHeaders,
-    }
-  );
+}
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*', // أو حطي دومين vapi لو عايزة أمان أكتر
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
 }
