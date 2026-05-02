@@ -1,15 +1,14 @@
-import { groq } from '@ai-sdk/groq';
+import { groq } from "@ai-sdk/groq";
 import { generateText } from "ai";
 
 import { db } from "@/firebase/admin";
 import { getRandomInterviewCover } from "@/lib/utils";
 
 export async function POST(request: Request) {
-  const body=await request.json();
-  const { type, role, level, techstack, amount, userid } = body
+  const body = await request.json();
+  const { type, role, level, techstack, amount, userid } = body;
   console.log("REQUEST BODY:", body); // ← ضيف دي
   console.log("userid:", userid); // ← وده
-
 
   try {
     const { text: questions } = await generateText({
@@ -45,21 +44,33 @@ export async function POST(request: Request) {
 
     await db.collection("interviews").add(interview);
 
+    // [source: 1] تعديل نهاية دالة الـ POST
     return Response.json(
       { success: true },
       {
         status: 200,
         headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
         },
-      }
+      },
     );
-  
-  } catch (error) {
-    console.error("Error:", error);
-    return Response.json({ success: false, error: error }, { status: 500 });
+  } catch (error: any) {
+    console.error("FULL ERROR:", error);
+
+    return Response.json(
+      {
+        success: false,
+        error: error.message || error,
+      },
+      {
+        status: 500,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+        },
+      },
+    );
   }
 }
 
