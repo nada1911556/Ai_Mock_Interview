@@ -16,7 +16,7 @@ export async function OPTIONS() {
 }
 
 export async function POST(request: Request) {
-  console.log("1- REQUEST RECEIVED:", await request.json());
+  console.log("1- REQUEST RECEIVED:");
 
   const { type, role, level, techstack, amount, userid } = await request.json();
 
