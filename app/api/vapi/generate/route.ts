@@ -16,9 +16,12 @@ export async function OPTIONS() {
 }
 
 export async function POST(request: Request) {
+  console.log("1- REQUEST RECEIVED:", await request.json());
+
   const { type, role, level, techstack, amount, userid } = await request.json();
 
   try {
+     console.log("2- BEFORE AI CALL");
     const { text: questions } = await generateText({
       model: groq("llama-3.3-70b-versatile"),
       prompt: `Prepare questions for a job interview.
@@ -35,6 +38,8 @@ export async function POST(request: Request) {
         Thank you! <3
     `,
     });
+      console.log("3- AI RESPONSE:", questions);
+
 
     const cleanedQuestions = questions.replace(/```json|```/g, "").trim();
 
@@ -49,8 +54,15 @@ export async function POST(request: Request) {
       coverImage: getRandomInterviewCover(),
       createdAt: new Date().toISOString(),
     };
+        console.log("4- BEFORE SAVE");
+
+
 
     await db.collection("interviews").add(interview);
+       console.log("5- SAVED SUCCESS");
+
+    console.log("INTERVIEW SAVED:", interview); // ← ضيفي دي
+
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
@@ -59,8 +71,8 @@ export async function POST(request: Request) {
         "Access-Control-Allow-Origin": "*",
       },
     });
-  } catch (error) {
-    console.error("Error:", error);
+  } catch (error:any) {
+    console.error("Error:", error.message);
     return new Response(JSON.stringify({ success: false, error: error }), {
       status: 500,
       headers: {
