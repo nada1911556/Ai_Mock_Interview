@@ -1,9 +1,9 @@
 "use server";
 
 import { generateObject } from "ai";
-import { groq } from "@ai-sdk/groq";
 import { db } from "@/firebase/admin";
 import { feedbackSchema } from "@/constants";
+import { google } from "@ai-sdk/google";
 
 export async function createFeedback(params: CreateFeedbackParams) {
   const { interviewId, userId, transcript, feedbackId } = params;
@@ -18,7 +18,7 @@ export async function createFeedback(params: CreateFeedbackParams) {
 
     const { object } = await generateObject({
       // تغيير الموديل هنا
-      model: groq("llama-3.3-70b-versatile"),
+      model: google("gemini-2.0-flash-001"),
 
       schema: feedbackSchema,
       prompt: `
@@ -97,13 +97,17 @@ export async function getLatestInterviews(
 ): Promise<Interview[] | null> {
   const { userId, limit = 20 } = params;
 
-  const interviews = await db
+  let query = db
     .collection("interviews")
     .orderBy("createdAt", "desc")
     .where("finalized", "==", true)
-    .where("userId", "!=", userId)
-    .limit(limit)
-    .get();
+    .limit(limit);
+
+  if (userId) {
+    query = query.where("userId", "!=", userId);
+  }
+
+  const interviews = await query.get();
 
   return interviews.docs.map((doc) => ({
     id: doc.id,
@@ -124,4 +128,25 @@ export async function getInterviewsByUserId(
     id: doc.id,
     ...doc.data(),
   })) as Interview[];
+}
+
+export async function saveTranscript(params: {
+  interviewId: string;
+  transcript: { role: string; content: string }[];
+}) {
+  const { interviewId, transcript } = params;
+
+  try {
+    // تحديث الوثيقة باستخدام الـ id الخاص بالمقابلة
+    await db.collection("interviews").doc(interviewId).update({
+      transcript: transcript,
+      finalized: true, // علامة تدل على أن المقابلة اكتملت
+      updatedAt: new Date().toISOString(),
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error saving transcript:", error);
+    return { success: false };
+  }
 }

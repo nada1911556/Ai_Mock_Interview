@@ -68,27 +68,26 @@ export async function signUp(params: SignUpParams) {
 }
 
 export async function signIn(params: SignInParams) {
-    const { email, idToken } = params;
+  const { email, idToken } = params;
 
-    try {
-        const userRecord = await auth.getUserByEmail(email);
-        if (!userRecord)
-            return {
-                success: false,
-                message: "User does not exist. Create an account.",
-            };
+  try {
+    const userRecord = await auth.getUserByEmail(email);
+    if (!userRecord)
+      return {
+        success: false,
+        message: "User does not exist. Create an account.",
+      };
 
-        await setSessionCookie(idToken);
+    await setSessionCookie(idToken);
 
-        // ضيفي دي عشان الـ Frontend يعرف إن كله تمام
-        return { success: true };
-
-    } catch (error: any) {
-        return {
-            success: false,
-            message: "Failed to log into account. Please try again.",
-        };
-    }
+    // ضيفي دي عشان الـ Frontend يعرف إن كله تمام
+    return { success: true };
+  } catch (error: any) {
+    return {
+      success: false,
+      message: "Failed to log into account. Please try again.",
+    };
+  }
 }
 // Sign out user by clearing the session cookie
 export async function signOut() {
@@ -102,6 +101,8 @@ export async function getCurrentUser(): Promise<User | null> {
   const cookieStore = await cookies();
 
   const sessionCookie = cookieStore.get("session")?.value;
+  console.log("SESSION COOKIE:", sessionCookie); // ← ضيفي دي
+
   if (!sessionCookie) return null;
 
   try {
@@ -130,4 +131,25 @@ export async function getCurrentUser(): Promise<User | null> {
 export async function isAuthenticated() {
   const user = await getCurrentUser();
   return !!user;
+}
+
+export async function saveTranscript(params: {
+  interviewId: string;
+  transcript: { role: string; content: string }[];
+}) {
+  const { interviewId, transcript } = params;
+
+  try {
+    // تحديث الوثيقة باستخدام الـ id الخاص بالمقابلة
+    await db.collection("interviews").doc(interviewId).update({
+      transcript: transcript,
+      finalized: true, // علامة تدل على أن المقابلة اكتملت
+      updatedAt: new Date().toISOString(),
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error saving transcript:", error);
+    return { success: false };
+  }
 }

@@ -3,6 +3,8 @@ import { getCurrentUser } from "@/lib/actions/auth.action";
 
 const Page = async () => {
   const user = await getCurrentUser();
+  console.log("USER:", user); // ← ضيفي دي
+  console.log("USER ID:", user?.id); // ← وده
 
   return (
     <>
@@ -10,7 +12,7 @@ const Page = async () => {
 
       <Agent
         userName={user?.name!}
-        userId={user?.id}
+        userId={user?.id ?? ""}
         profileImage={user?.profileURL}
         type="generate"
       />
