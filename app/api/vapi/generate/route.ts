@@ -1,27 +1,45 @@
-import { groq } from './../../../../node_modules/@ai-sdk/groq/src/groq-provider';
+// [source: 1] route.ts
+import { groq } from "@ai-sdk/groq";
 import { generateText } from "ai";
-
 import { db } from "@/firebase/admin";
 import { getRandomInterviewCover } from "@/lib/utils";
 
+// تعريف الـ Headers لمرة واحدة لاستخدامها في كل الاستجابات
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
 
 export async function GET() {
   return Response.json(
-    { success: true, data: "Thank you!" },
+    { success: true, data: "Service is online!" },
     {
       status: 200,
+      headers: corsHeaders,
     }
   );
 }
 
-export async function POST(request: Request) {
-  console.log("API KEY LENGTH:", process.env.GROQ_API_KEY?.length);
-  const { type, role, level, techstack, amount, userid } =
-    await request.json();
+export async function OPTIONS() {
+  // هذا الرد ضروري جداً لـ Vapi لتجاوز حماية الـ CORS في المتصفح
+  return new Response(null, {
+    status: 204,
+    headers: corsHeaders,
+  });
+}
 
+export async function POST(request: Request) {
   try {
+    const body = await request.json();
+    const { type, role, level, techstack, amount, userid } = body;
+
+    // طباعة البيانات للتأكد من وصولها في الـ Vercel Logs
+    console.log("Request received for user:", userid);
+
     const { text: questions } = await generateText({
-      model: groq("llama-3.3-70b-versatile"),
+      // استخدام موديل 8b لأنه أسرع بمراحل ويمنع الـ Timeout
+      model: groq("llama-3.1-8b-instant"), 
       prompt: `Prepare questions for a job interview.
         The job role is ${role}.
         The job experience level is ${level}.
@@ -29,11 +47,11 @@ export async function POST(request: Request) {
         The focus between behavioural and technical questions should lean towards: ${type}.
         The amount of questions required is: ${amount}.
         Please return only the questions, without any additional text.
-        The questions are going to be read by a voice assistant so do not use "/" or "*" or any other special characters which might break the voice assistant.
+        The questions are going to be read by a voice assistant so do not use "/" or "*" or any other special characters.
         Return the questions formatted like this:
         ["Question 1", "Question 2", "Question 3"]
         
-        Thank you! <3
+        Thank you!
     `,
     });
 
@@ -41,7 +59,7 @@ export async function POST(request: Request) {
       role: role,
       type: type,
       level: level,
-      techstack: techstack.split(","),
+      techstack: typeof techstack === "string" ? techstack.split(",") : techstack,
       questions: JSON.parse(questions),
       userId: userid,
       finalized: true,
@@ -49,33 +67,28 @@ export async function POST(request: Request) {
       createdAt: new Date().toISOString(),
     };
 
+    // حفظ البيانات في Firestore
     await db.collection("interviews").add(interview);
 
     return Response.json(
       { success: true },
       {
         status: 200,
+        headers: corsHeaders, // ضروري لنجاح الطلب في واجهة Vapi[cite: 1]
       }
     );
-  } 
-  catch (error: any) {
-    // اطبعي الخطأ في الـ Terminal بتاع الـ VS Code عشان نشوفه
-    console.error("FULL ERROR:", error); 
+  } catch (error: any) {
+    console.error("FULL ERROR IN ROUTE:", error);
 
-    return Response.json({ 
+    return Response.json(
+      { 
         success: false, 
-        error: error.message || error, // لو مفيش message يبعت الـ error نفسه
-        raw: JSON.stringify(error) // حولي الخطأ لنص عشان نشوفه لو فاضي
-    }, { status: 500 });
-}
-}
-export async function OPTIONS() {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*', // أو حطي دومين vapi لو عايزة أمان أكتر
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
-  });
+        error: error.message || "Internal Server Error",
+      }, 
+      { 
+        status: 500, 
+        headers: corsHeaders // حتى في الخطأ نحتاج الـ CORS لكي يراها Vapi[cite: 1]
+      }
+    );
+  }
 }

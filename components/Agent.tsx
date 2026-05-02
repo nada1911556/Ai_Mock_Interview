@@ -26,7 +26,6 @@ const Agent = ({
   userId,
   interviewId,
   feedbackId,
-  //    profileImage,
   type,
   questions,
 }: AgentProps) => {
@@ -73,7 +72,7 @@ const Agent = ({
     vapi.on("speech-end", onSpeechEnd);
     vapi.on("error", onError);
 
-    return () => {
+    return () => { 
       vapi.off("call-start", onCallStart);
       vapi.off("call-end", onCallEnd);
       vapi.off("message", onMessage);
@@ -101,8 +100,9 @@ const Agent = ({
       if (success && id) {
         router.push(`/interview/${interviewId}/feedback`);
       } else {
-        console.log("Error saving feedback");
-        router.push("/");
+        // console.log("Error saving feedback");
+        // router.push("/");
+        console.log("Error saving feedback for interview:", interviewId);
       }
     };
 
@@ -116,18 +116,21 @@ const Agent = ({
   }, [messages, callStatus, feedbackId, interviewId, router, type, userId]);
 
   const handleCall = async () => {
-    console.log("WORKFLOW:", process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID);
-    console.log("clicked"); // 👈 ضيف دي
     setCallStatus(CallStatus.CONNECTING);
 
     if (type === "generate") {
-      await vapi.start({
-        workflowId: process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID,
-        variableValues: {
-          username: userName,
-          userid: userId,
-        },
-      });
+      await vapi.start(
+        undefined,
+        undefined,
+        undefined,
+        process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID!,
+        {
+          variableValues: {
+            username: userName,
+            userid: userId,
+          },
+        }
+      );
     } else {
       let formattedQuestions = "";
       if (questions) {
@@ -143,7 +146,6 @@ const Agent = ({
       });
     }
   };
-
   const handleDisconnect = () => {
     setCallStatus(CallStatus.FINISHED);
     vapi.stop();
