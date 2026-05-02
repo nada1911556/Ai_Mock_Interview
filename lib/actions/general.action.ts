@@ -4,6 +4,7 @@ import { generateObject } from "ai";
 import { db } from "@/firebase/admin";
 import { feedbackSchema } from "@/constants";
 import { google } from "@ai-sdk/google";
+import { groq } from "@ai-sdk/groq";
 
 export async function createFeedback(params: CreateFeedbackParams) {
   const { interviewId, userId, transcript, feedbackId } = params;
@@ -18,7 +19,7 @@ export async function createFeedback(params: CreateFeedbackParams) {
 
     const { object } = await generateObject({
       // تغيير الموديل هنا
-      model: google("gemini-2.0-flash-001"),
+      model: groq("llama-3.3-70b-versatile"),
 
       schema: feedbackSchema,
       prompt: `
@@ -97,17 +98,13 @@ export async function getLatestInterviews(
 ): Promise<Interview[] | null> {
   const { userId, limit = 20 } = params;
 
-  let query = db
+  const interviews = await db
     .collection("interviews")
     .orderBy("createdAt", "desc")
     .where("finalized", "==", true)
-    .limit(limit);
-
-  if (userId) {
-    query = query.where("userId", "!=", userId);
-  }
-
-  const interviews = await query.get();
+    .where("userId", "!=", userId)
+    .limit(limit)
+    .get();
 
   return interviews.docs.map((doc) => ({
     id: doc.id,
@@ -129,7 +126,6 @@ export async function getInterviewsByUserId(
     ...doc.data(),
   })) as Interview[];
 }
-
 export async function saveTranscript(params: {
   interviewId: string;
   transcript: { role: string; content: string }[];
@@ -150,3 +146,4 @@ export async function saveTranscript(params: {
     return { success: false };
   }
 }
+

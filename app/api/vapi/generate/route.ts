@@ -1,4 +1,4 @@
-"use server"
+import { groq } from '@ai-sdk/groq';
 import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
 
@@ -14,7 +14,7 @@ export async function POST(request: Request) {
 
   try {
     const { text: questions } = await generateText({
-      model: google("gemini-2.0-flash-001"),
+      model: groq("llama-3.3-70b-versatile"),
       prompt: `Prepare questions for a job interview.
         The job role is ${role}.
         The job experience level is ${level}.
