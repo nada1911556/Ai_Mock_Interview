@@ -1,6 +1,5 @@
 import { groq } from '@ai-sdk/groq';
 import { generateText } from "ai";
-import { google } from "@ai-sdk/google";
 
 import { db } from "@/firebase/admin";
 import { getRandomInterviewCover } from "@/lib/utils";
@@ -46,7 +45,18 @@ export async function POST(request: Request) {
 
     await db.collection("interviews").add(interview);
 
-    return Response.json({ success: true }, { status: 200 });
+    return Response.json(
+      { success: true },
+      {
+        status: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+      }
+    );
+  
   } catch (error) {
     console.error("Error:", error);
     return Response.json({ success: false, error: error }, { status: 500 });
