@@ -1,18 +1,26 @@
-import { groq } from "@ai-sdk/groq";
 import { generateText } from "ai";
+import { google } from "@ai-sdk/google";
 
 import { db } from "@/firebase/admin";
 import { getRandomInterviewCover } from "@/lib/utils";
 
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    },
+  });
+}
+
 export async function POST(request: Request) {
-  const body = await request.json();
-  const { type, role, level, techstack, amount, userid } = body;
-  console.log("REQUEST BODY:", body); // ← ضيف دي
-  console.log("userid:", userid); // ← وده
+  const { type, role, level, techstack, amount, userid } = await request.json();
 
   try {
     const { text: questions } = await generateText({
-      model: groq("llama-3.3-70b-versatile"),
+      model: google("gemini-2.0-flash-001"),
       prompt: `Prepare questions for a job interview.
         The job role is ${role}.
         The job experience level is ${level}.
@@ -27,7 +35,7 @@ export async function POST(request: Request) {
         Thank you! <3
     `,
     });
-    console.log("RAW AI RESPONSE:", questions);
+
     const cleanedQuestions = questions.replace(/```json|```/g, "").trim();
 
     const interview = {
@@ -36,7 +44,7 @@ export async function POST(request: Request) {
       level: level,
       techstack: techstack.split(","),
       questions: JSON.parse(cleanedQuestions),
-      userid: userid,
+      userId: userid,
       finalized: true,
       coverImage: getRandomInterviewCover(),
       createdAt: new Date().toISOString(),
@@ -44,36 +52,31 @@ export async function POST(request: Request) {
 
     await db.collection("interviews").add(interview);
 
-    // [source: 1] تعديل نهاية دالة الـ POST
-    return Response.json(
-      { success: true },
-      {
-        status: 200,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        },
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
       },
-    );
-  } catch (error: any) {
-    console.error("FULL ERROR:", error);
-
-    return Response.json(
-      {
-        success: false,
-        error: error.message || error,
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    return new Response(JSON.stringify({ success: false, error: error }), {
+      status: 500,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
       },
-      {
-        status: 500,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-        },
-      },
-    );
+    });
   }
 }
 
 export async function GET() {
-  return Response.json({ success: true, data: "Thank you!" }, { status: 200 });
+  return new Response(JSON.stringify({ success: true, data: "Thank you!" }), {
+    status: 200,
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+    },
+  });
 }
