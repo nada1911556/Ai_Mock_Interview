@@ -3,7 +3,6 @@
 import { generateObject } from "ai";
 import { db } from "@/firebase/admin";
 import { feedbackSchema } from "@/constants";
-import { google } from "@ai-sdk/google";
 import { groq } from "@ai-sdk/groq";
 
 export async function createFeedback(params: CreateFeedbackParams) {
@@ -18,7 +17,6 @@ export async function createFeedback(params: CreateFeedbackParams) {
       .join("");
 
     const { object } = await generateObject({
-      // تغيير الموديل هنا
       model: groq("llama-3.3-70b-versatile"),
 
       schema: feedbackSchema,
@@ -78,11 +76,11 @@ export async function getInterviewById(id: string): Promise<Interview | null> {
 export async function getFeedbackByInterviewId(
   params: GetFeedbackByInterviewIdParams,
 ): Promise<Feedback | null> {
-  const { interviewId, userId } = params;
+  const { id, userId } = params;
 
   const querySnapshot = await db
     .collection("feedback")
-    .where("interviewId", "==", interviewId)
+    .where("interviewId", "==", id)
     .where("userId", "==", userId)
     .limit(1)
     .get();

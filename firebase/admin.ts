@@ -15,8 +15,8 @@ function initFirebaseAdmin() {
         privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
       }),
     });
-  }
 
+  }     
   return {
     auth: getAuth(),
     db: getFirestore(),

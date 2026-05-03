@@ -1,14 +1,14 @@
 import Image from "next/image";
 import { redirect } from "next/navigation";
 
-import Agent from "@/components/Agent";
 import { getRandomInterviewCover } from "@/lib/utils";
-
+ 
 import {
   getInterviewById,
 } from "@/lib/actions/general.action";
 import { getCurrentUser } from "@/lib/actions/auth.action";
 import DisplayTechIcons from "@/components/DisplayTechIcons";
+import Agent from "@/components/Agent";
 
 const InterviewDetails = async ({ params }: RouteParams) => {
   const { id } = await params;
@@ -44,7 +44,7 @@ const InterviewDetails = async ({ params }: RouteParams) => {
       </div>
 
       <Agent
-        userName={user?.name!}
+        userName={user?.name}
         userId={user?.id}
         interviewId={id}
         type="interview"
