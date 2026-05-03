@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   try {
      console.log("2- BEFORE AI CALL");
     const { text: questions } = await generateText({
-      model: groq("llama-3.3-70b-versatile"),
+      model: groq("llama3-groq-70b-8192-tool-use-preview"),
       prompt: `Prepare questions for a job interview.
         The job role is ${role}.
         The job experience level is ${level}.

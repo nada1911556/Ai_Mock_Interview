@@ -7,7 +7,7 @@ import { groq } from "@ai-sdk/groq";
 
 export async function createFeedback(params: CreateFeedbackParams) {
   const { interviewId, userId, transcript, feedbackId } = params;
-
+  console.log(feedbackId);
   try {
     const formattedTranscript = transcript
       .map(
@@ -16,51 +16,74 @@ export async function createFeedback(params: CreateFeedbackParams) {
       )
       .join("");
 
-    const { object } = await generateObject({
+    const {
+      object: {
+        totalScore,
+        categoryScores,
+        strengths,
+        finalAssessment,
+        areasForImprovement,
+      },
+    } = await generateObject({
       model: groq("llama-3.3-70b-versatile"),
+      providerOptions: {
+        groq: { structuredOutputs: false },
+      },
 
       schema: feedbackSchema,
       prompt: `
-    You are an AI interviewer analyzing a mock interview...
-    Transcript:
-    ${formattedTranscript}
+You are an AI interviewer analyzing a mock interview.
+Transcript:
+${formattedTranscript}
 
-        Please score the candidate from 0 to 100 in the following areas. Do not add categories other than the ones provided:
-        - **Communication Skills**: Clarity, articulation, structured responses.
-        - **Technical Knowledge**: Understanding of key concepts for the role.
-        - **Problem-Solving**: Ability to analyze problems and propose solutions.
-        - **Cultural & Role Fit**: Alignment with company values and job role.
-        - **Confidence & Clarity**: Confidence in responses, engagement, and clarity.
-        `,
+Please score the candidate and return a JSON object with EXACTLY these fields:
+{
+  "totalScore": <number 0-100>,
+  "categoryScores": [
+    {"name": "Communication Skills", "score": <number>, "comment": "<string>"},
+    {"name": "Technical Knowledge", "score": <number>, "comment": "<string>"},
+    {"name": "Problem-Solving", "score": <number>, "comment": "<string>"},
+    {"name": "Cultural & Role Fit", "score": <number>, "comment": "<string>"},
+    {"name": "Confidence & Clarity", "score": <number>, "comment": "<string>"}
+  ],
+  "strengths": ["<string>", "<string>"],
+  "areasForImprovement": ["<string>", "<string>"],
+  "finalAssessment": "<string>"
+}
+`,
       system:
-        "You are a professional interviewer analyzing a mock interview. Your task is to evaluate the candidate based on structured categories",
+        "You are a professional interviewer analyzing a mock interview. Your task is to evaluate the candidate based on structured categories. Always respond in JSON format.",
     });
 
-    const feedback = {
-      interviewId: interviewId,
-      userId: userId,
-      totalScore: object.totalScore,
-      categoryScores: object.categoryScores,
-      strengths: object.strengths,
-      areasForImprovement: object.areasForImprovement,
-      finalAssessment: object.finalAssessment,
-      createdAt: new Date().toISOString(),
+    const feedback = await db.collection("feedback").add({
+      interviewId,
+      userId,
+      totalScore,
+      categoryScores,
+      strengths,
+      areasForImprovement,
+      finalAssessment,
+      createdat: new Date().toISOString(),
+    });
+    return {
+      success: true,
+      feedbackId: feedback.id,
     };
 
-    let feedbackRef;
+    // let feedbackRef;
 
-    if (feedbackId) {
-      feedbackRef = db.collection("feedback").doc(feedbackId);
-    } else {
-      feedbackRef = db.collection("feedback").doc();
-    }
+    // if (feedbackId) {
+    //   feedbackRef = db.collection("feedback").doc(feedbackId);
+    // } else {
+    //   feedbackRef = db.collection("feedback").doc();
+    // }
 
-    await feedbackRef.set(feedback);
-    await db.collection("interviews").doc(interviewId).update({
-      finalized: true,
-    });
+    // await feedbackRef.set(feedback);
+    // await db.collection("interviews").doc(interviewId).update({
+    //   finalized: true,
+    // });
 
-    return { success: true, feedbackId: feedbackRef.id };
+    // return { success: true, feedbackId: feedbackRef.id };
   } catch (error) {
     console.error("Error saving feedback:", error);
     return { success: false };
@@ -99,7 +122,7 @@ export async function getLatestInterviews(
   const interviews = await db
     .collection("interviews")
     .orderBy("createdAt", "desc")
-    .where("finalized", "==", true)
+    .where("finalized", "in", [true, false])
     .where("userId", "!=", userId)
     .limit(limit)
     .get();
@@ -144,4 +167,3 @@ export async function saveTranscript(params: {
     return { success: false };
   }
 }
-
