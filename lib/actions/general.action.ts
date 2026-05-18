@@ -154,10 +154,9 @@ export async function saveTranscript(params: {
   const { interviewId, transcript } = params;
 
   try {
-    // تحديث الوثيقة باستخدام الـ id الخاص بالمقابلة
     await db.collection("interviews").doc(interviewId).update({
       transcript: transcript,
-      finalized: true, // علامة تدل على أن المقابلة اكتملت
+      finalized: [true,false], 
       updatedAt: new Date().toISOString(),
     });
 

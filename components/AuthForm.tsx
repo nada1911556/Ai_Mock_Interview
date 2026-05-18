@@ -94,13 +94,11 @@ const AuthForm = ({ type }: { type: FormType }) => {
         return;
       }
 
-      // 🔥 مهم: Server Action هو اللي هيعمل redirect
       const response = await signIn({
         email,
         idToken,
       });
 
-      // ⚠️ لو وصلنا هنا يبقى فيه error (لأن redirect بيوقف التنفيذ)
       if (response?.success === false) {
         toast.error(response.message || "Sign in failed");
       }
